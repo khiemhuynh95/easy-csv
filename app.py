@@ -83,7 +83,7 @@ chat_col, df_col = st.columns([4, 6])
 
 # Chat interface
 with chat_col:
-    st.header("Chat Interface")
+    st.header("Easy CSV")
 
     # CHAT WINDOW
     st.markdown(chat_window_css, unsafe_allow_html=True)
