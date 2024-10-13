@@ -146,8 +146,10 @@ with chat_col:
 # DataFrame display
 with df_col:
     uploaded_files = st.file_uploader("Choose CSV files", type=["csv"], accept_multiple_files=True, label_visibility="collapsed")
-
-    if uploaded_files:
+    if st.session_state.df is not None:
+        # If a DataFrame has already been uploaded, display it
+        st.dataframe(st.session_state.df, use_container_width=True)
+    elif uploaded_files:
         # Initialize an empty list to hold the DataFrames and a variable for the schema
         dataframes = []
         schema = None  # Variable to store the schema of the first DataFrame
@@ -165,11 +167,11 @@ with df_col:
             
             dataframes.append(df)
 
-        else:  # Only execute if the loop was not broken
-            st.session_state.df = pd.concat(dataframes, ignore_index=True)
-            # Display the concatenated DataFrame
-            st.dataframe(st.session_state.df, use_container_width=True)
-    elif st.session_state.df is not None:
-        # If a DataFrame has already been uploaded, display it
+        st.session_state.origin_df = pd.concat(dataframes, ignore_index=True)
+        st.session_state.df = st.session_state.origin_df
+        # Display the concatenated DataFrame
         st.dataframe(st.session_state.df, use_container_width=True)
-
+    
+    if st.button("Reset"):
+        st.session_state.df = st.session_state.origin_df
+        st.rerun()
