@@ -4,6 +4,24 @@ from utils import *
 from dotenv import load_dotenv
 import os
 import duckdb
+import logging
+
+# Configure logging
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
+# Create a file handler
+file_handler = logging.FileHandler('app.log')  # Log will be written to 'app.log'
+file_handler.setLevel(logging.INFO)
+
+# Create a logging format
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+
+# Add the handlers to the logger
+log.addHandler(file_handler)
+
+
 # Load environment variables from .env file
 load_dotenv()
 ANYTHINGLLM_API_KEY = os.getenv('ANYTHINGLLM_API_KEY')
@@ -42,22 +60,19 @@ chat_window_css = """
 # Query init
 if 'response' not in st.session_state:
     st.session_state.response = None
+    
+# Traceback stack init
+if 'df_stack' not in st.session_state:
+    st.session_state.df_stack = []
 
 # Create two columns: one for chat (40% width) and one for DataFrame (60% width)
 chat_col, df_col = st.columns([4, 6])
-
-
 
 # Chat interface
 with chat_col:
     st.header("Chat Interface")
 
-    # Display chat messages
-    #for message in st.session_state.messages:
-    #    st.text(message)
-    
     # CHAT WINDOW
-    # chat window css
     st.markdown(chat_window_css, unsafe_allow_html=True)
     
     # Create a scrollable chat window
@@ -109,8 +124,6 @@ with chat_col:
                             st.session_state.messages.append({"role":"ai", "content":{api_response['message']}})
                     else:
                         st.session_state.messages.append({"role":"ai", "content": "No DataFrame available to generate SQL schema."})
-                    # st.session_state.chat_input = ""
-
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
         
@@ -136,12 +149,12 @@ with chat_col:
                     sql_query = clean_sql(query_input)
                     #apply sql into the df
                     df = st.session_state.df
-                    st.session_state.df = duckdb.sql(sql_query).df()
+                    updated_df = duckdb.sql(sql_query).df()
+                    st.session_state.df_stack.append(updated_df)    # Update df traceback stack
+                    st.session_state.df = updated_df                # Update current df
                     st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
-    
-         
 
 # DataFrame display
 with df_col:
@@ -167,11 +180,19 @@ with df_col:
             
             dataframes.append(df)
 
-        st.session_state.origin_df = pd.concat(dataframes, ignore_index=True)
-        st.session_state.df = st.session_state.origin_df
+        st.session_state.origin_df = pd.concat(dataframes, ignore_index=True)   # save original df
+        st.session_state.df_stack.append(st.session_state.origin_df)            # init df traceback stack
+        st.session_state.df = st.session_state.origin_df                        # init current df
         # Display the concatenated DataFrame
         st.dataframe(st.session_state.df, use_container_width=True)
     
     if st.button("Reset"):
         st.session_state.df = st.session_state.origin_df
         st.rerun()
+    
+    if st.button("undo"):
+        if len(st.session_state.df_stack) > 1:
+            log.info(f"Undoing last operation. Stack length: {len(st.session_state.df_stack)}")
+            popped_df = st.session_state.df_stack.pop()
+            st.session_state.df = st.session_state.df_stack[-1]
+            st.rerun()
