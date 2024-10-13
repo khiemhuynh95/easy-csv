@@ -61,11 +61,10 @@ with chat_col:
     st.markdown(chat_window_css, unsafe_allow_html=True)
     
     # Create a scrollable chat window
-    chat_html = "<div class='chat-window'>"
-    for message in st.session_state.messages:
-        chat_html += f"<div class='chat-message'>{message}</div>"
-    chat_html += "</div>"
-    st.markdown(chat_html, unsafe_allow_html=True)
+    with st.container(height=350, border=True):
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
     
     # Chat input
     with st.container():
@@ -79,7 +78,7 @@ with chat_col:
             if st.button("Send"):
                 if user_input:
                     # Append user message to chat
-                    st.session_state.messages.append(f"You: {user_input}")
+                    st.session_state.messages.append({"role":"user", "content":user_input})
                     
                     # Prepare data for the API if df is available
                     if st.session_state.df is not None:
@@ -105,11 +104,11 @@ with chat_col:
                         
                         # Handle the response from the API
                         if api_response['status'] == 200:
-                            st.session_state.messages.append(f"Response: {api_response['data'].get('textResponse', 'No reply found')}")
+                            st.session_state.messages.append({"role":"ai", "content":api_response['data'].get('textResponse', 'No reply found')})
                         else:
-                            st.session_state.messages.append(f"Response: {api_response['message']}")
+                            st.session_state.messages.append({"role":"ai", "content":{api_response['message']}})
                     else:
-                        st.session_state.messages.append("Response: No DataFrame available to generate SQL schema.")
+                        st.session_state.messages.append({"role":"ai", "content": "No DataFrame available to generate SQL schema."})
                     # st.session_state.chat_input = ""
 
                     st.rerun()
