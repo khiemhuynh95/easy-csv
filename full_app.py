@@ -152,11 +152,21 @@ with chat_col:
                     sql_query = clean_sql(query_input)
                     #apply sql into the df
                     df = st.session_state.df
+                    
+                try:
                     updated_df = duckdb.sql(sql_query).df()
                     st.session_state.df_stack.append(updated_df)    # Update df traceback stack
-                    #st.session_state.df_fw_stack.append(updated_df)
                     st.session_state.df = updated_df                # Update current df
                     st.rerun()
+                except Exception as e:
+                    log.error(e)
+                    with st.warning('This is a warning'):
+                        if st.button("Invalid SQL"):
+                            st.rerun()  # This refreshes the page to 'close' the modal
+
+                
+
+
             
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -216,4 +226,5 @@ with df_col:
                 st.session_state.df_stack.append(redo_df)
                 st.session_state.df = redo_df
                 st.rerun()
-                    
+                
+
