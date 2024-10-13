@@ -32,6 +32,10 @@ chat_window_css = """
     .chat-message {
         margin-bottom: 10px;
     }
+    .chat-button, sql-button {
+        position: absolute;
+        position: 0;
+    }
     </style>
 """
 
@@ -66,9 +70,12 @@ with chat_col:
     # Chat input
     with st.container():
         user_input_col, button_col = st.columns([8,2])
+        
         with user_input_col:
             user_input = st.text_input("Query:")
         with button_col:
+            st.markdown("<div class='chat-button'>", unsafe_allow_html=True)
+            
             if st.button("Send"):
                 if user_input:
                     # Append user message to chat
@@ -106,9 +113,12 @@ with chat_col:
                     # st.session_state.chat_input = ""
 
                     st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+        
     # Query input
     with st.container():
         query_input_col, query_button_col = st.columns([8,2])
+        
         with query_input_col:
             # Check if the response is available before accessing it
             if st.session_state.response is not None:
@@ -120,6 +130,8 @@ with chat_col:
 
             query_input = st.text_input("SQL:", value=query)
         with query_button_col:
+            st.markdown("<div class='sql-button'>", unsafe_allow_html=True)
+            
             if st.button("Execute"):
                 if query_input:
                     sql_query = clean_sql(query_input)
@@ -127,7 +139,8 @@ with chat_col:
                     df = st.session_state.df
                     st.session_state.df = duckdb.sql(sql_query).df()
                     st.rerun()
-                
+            
+            st.markdown("</div>", unsafe_allow_html=True)
     
          
 
