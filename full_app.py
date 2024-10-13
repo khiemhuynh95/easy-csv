@@ -67,7 +67,7 @@ with chat_col:
     with st.container():
         user_input_col, button_col = st.columns([8,2])
         with user_input_col:
-            user_input = st.text_input("Type your message here:")
+            user_input = st.text_input("Query:")
         with button_col:
             if st.button("Send"):
                 if user_input:
@@ -114,18 +114,19 @@ with chat_col:
             if st.session_state.response is not None:
                 query = st.session_state.response['data'].get('textResponse', 'No reply found')
                 if query == 'No reply found':
-                    query = ""
+                    query = None
             else:
-                query = ""  # Default to empty if response is None
+                query = None  # Default to empty if response is None
 
-            query_input = st.text_input("Query:", value=query)
+            query_input = st.text_input("SQL:", value=query)
         with query_button_col:
             if st.button("Execute"):
-                sql_query = clean_sql(query_input)
-                #apply sql into the df
-                df = st.session_state.df
-                st.session_state.df = duckdb.sql(sql_query).df()
-                st.rerun()
+                if query_input:
+                    sql_query = clean_sql(query_input)
+                    #apply sql into the df
+                    df = st.session_state.df
+                    st.session_state.df = duckdb.sql(sql_query).df()
+                    st.rerun()
                 
     
          
