@@ -54,6 +54,7 @@ chat_window_css = """
         position: absolute;
         position: 0;
     }
+    
     </style>
 """
 
@@ -64,6 +65,8 @@ if 'response' not in st.session_state:
 # Traceback stack init
 if 'df_stack' not in st.session_state:
     st.session_state.df_stack = []
+if 'df_fw_stack' not in st.session_state:
+    st.session_state.df_fw_stack = []
 
 # Create two columns: one for chat (40% width) and one for DataFrame (60% width)
 chat_col, df_col = st.columns([4, 6])
@@ -143,7 +146,7 @@ with chat_col:
             query_input = st.text_input("SQL:", value=query)
         with query_button_col:
             st.markdown("<div class='sql-button'>", unsafe_allow_html=True)
-            
+         
             if st.button("Execute"):
                 if query_input:
                     sql_query = clean_sql(query_input)
@@ -151,6 +154,7 @@ with chat_col:
                     df = st.session_state.df
                     updated_df = duckdb.sql(sql_query).df()
                     st.session_state.df_stack.append(updated_df)    # Update df traceback stack
+                    #st.session_state.df_fw_stack.append(updated_df)
                     st.session_state.df = updated_df                # Update current df
                     st.rerun()
             
@@ -186,13 +190,30 @@ with df_col:
         # Display the concatenated DataFrame
         st.dataframe(st.session_state.df, use_container_width=True)
     
-    if st.button("Reset"):
-        st.session_state.df = st.session_state.origin_df
-        st.rerun()
     
-    if st.button("undo"):
-        if len(st.session_state.df_stack) > 1:
-            log.info(f"Undoing last operation. Stack length: {len(st.session_state.df_stack)}")
-            popped_df = st.session_state.df_stack.pop()
-            st.session_state.df = st.session_state.df_stack[-1]
+    reset_col, un_col, re_col = st.columns([8,1,1])
+    with reset_col:
+        if st.button("Reset"):
+            st.session_state.df = st.session_state.origin_df
+            st.session_state.df_fw_stack.clear()
+            st.session_state.df_stack = [st.session_state.origin_df]
             st.rerun()
+ 
+    with un_col:
+        if st.button("<<"):
+            if len(st.session_state.df_stack) > 1:
+                log.info(f"Undoing last operation. Stack stlength: {len(st.session_state.df_stack)}")
+                popped_df = st.session_state.df_stack.pop()
+                st.session_state.df_fw_stack.append(popped_df)
+                st.session_state.df = st.session_state.df_stack[-1]
+                st.rerun()
+    
+    with re_col:
+        if st.button("\>>"):
+            if len(st.session_state.df_fw_stack) > 0: 
+                log.info(f"redoing last operation. Stack length: {len(st.session_state.df_fw_stack)}")
+                redo_df = st.session_state.df_fw_stack.pop()
+                st.session_state.df_stack.append(redo_df)
+                st.session_state.df = redo_df
+                st.rerun()
+                    
