@@ -133,14 +133,31 @@ with chat_col:
 
 # DataFrame display
 with df_col:
-    uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"], label_visibility="collapsed")
+    uploaded_files = st.file_uploader("Choose CSV files", type=["csv"], accept_multiple_files=True, label_visibility="collapsed")
 
-    if uploaded_file is not None:
-        # Read the uploaded CSV file into a DataFrame and store it in session state
-        st.session_state.df = pd.read_csv(uploaded_file)
+    if uploaded_files:
+        # Initialize an empty list to hold the DataFrames and a variable for the schema
+        dataframes = []
+        schema = None  # Variable to store the schema of the first DataFrame
 
-        # Display the uploaded DataFrame
-        st.dataframe(st.session_state.df, use_container_width=True)
+        for uploaded_file in uploaded_files:
+            df = pd.read_csv(uploaded_file)
+            
+            # Check if schema is consistent
+            if schema is None:
+                schema = set(df.columns)  # Set schema for the first DataFrame
+            elif schema != set(df.columns):
+                st.warning("Failed to concatenate the DataFrames: One or more CSV files have a different schema.")
+                st.session_state.df = None  # Reset the DataFrame in session state
+                break  # Exit the loop if schemas do not match
+            
+            dataframes.append(df)
+
+        else:  # Only execute if the loop was not broken
+            st.session_state.df = pd.concat(dataframes, ignore_index=True)
+            # Display the concatenated DataFrame
+            st.dataframe(st.session_state.df, use_container_width=True)
     elif st.session_state.df is not None:
         # If a DataFrame has already been uploaded, display it
         st.dataframe(st.session_state.df, use_container_width=True)
+
